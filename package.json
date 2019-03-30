@@ -1,0 +1,23 @@
+{
+  "name": "y-codemirror",
+  "version": "1.0.0",
+  "description": "CodeMirror binding for Yjs",
+  "main": "./dist/y-codemirror.js",
+  "module": "./src/y-codemirror.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/y-js/y-codemirror.git"
+  },
+  "keywords": [
+    "Yjs"
+  ],
+  "author": "Kevin Jahns <kevin.jahns@protonmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/y-js/y-codemirror/issues"
+  },
+  "homepage": "https://github.com/y-js/y-codemirror#readme"
+}
