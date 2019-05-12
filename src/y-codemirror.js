@@ -80,8 +80,8 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId) => {
   if (cursor == null || cursor.anchor == null || cursor.head == null) {
     return
   }
-  const anchor = Y.fromRelativePosition(y, cursor.anchor || null)
-  const head = Y.fromRelativePosition(y, cursor.head || null)
+  const anchor = Y.toAbsolutePosition(Y.createRelativePositionFromJSON(cursor.anchor), y)
+  const head = Y.toAbsolutePosition(Y.createRelativePositionFromJSON(cursor.head), y)
   if (anchor !== null && head !== null && anchor.type === type && head.type === type) {
     const headpos = cm.posFromIndex(head.offset)
     const anchorpos = cm.posFromIndex(anchor.offset)
@@ -107,15 +107,26 @@ const prosemirrorCursorActivity = (y, cm, type) => {
   if (!cm.hasFocus()) {
     return
   }
+  const newAnchor = Y.createRelativePositionByOffset(type, cm.indexFromPos(cm.getCursor('anchor')))
+  const newHead = Y.createRelativePositionByOffset(type, cm.indexFromPos(cm.getCursor('head')))
   const aw = y.getLocalAwarenessInfo()
-  const anchor = Y.getRelativePosition(type, cm.indexFromPos(cm.getCursor('anchor')))
-  const head = Y.getRelativePosition(type, cm.indexFromPos(cm.getCursor('head')))
-  if (aw.cursor == null || !Y.equalRelativePosition(aw.cursor.anchor, anchor) || !Y.equalRelativePosition(aw.cursor.head, head)) {
+  let currentAnchor = null
+  let currentHead = null
+  if (aw.cursor != null) {
+    currentAnchor = Y.createRelativePositionFromJSON(aw.cursor.anchor)
+    currentHead = Y.createRelativePositionFromJSON(aw.cursor.head)
+  }
+  if (aw.cursor == null || !Y.compareRelativePositions(currentAnchor, newAnchor) || !Y.compareRelativePositions(currentHead, newHead)) {
     y.setAwarenessField('cursor', {
-      anchor, head
+      anchor: newAnchor.toJSON(),
+      head: newHead.toJSON()
     })
   }
 }
+
+/**
+ * @typedef {any} CodeMirror A codemirror instance
+ */
 
 /**
  * A binding that binds a YText to a CodeMirror editor.
@@ -136,7 +147,7 @@ export class CodeMirrorBinding {
    * @param {Object} [options={cursors: true}]
    */
   constructor (textType, codeMirror, { cursors = true } = {}) {
-    const y = textType._y
+    const doc = textType.doc
     this.type = textType
     this.target = codeMirror
     /**
@@ -150,18 +161,18 @@ export class CodeMirrorBinding {
     this._targetObserver = (_, change) => targetObserver(this, change)
     this._cursors = new Map()
     this._awarenessListener = event => {
-      const f = clientId => updateRemoteSelection(y, codeMirror, textType, this._cursors, clientId)
+      const f = clientId => updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId)
       event.added.forEach(f)
       event.removed.forEach(f)
       event.updated.forEach(f)
     }
-    this._cursorListener = () => prosemirrorCursorActivity(y, codeMirror, textType)
+    this._cursorListener = () => prosemirrorCursorActivity(doc, codeMirror, textType)
     this._blurListeer = () =>
-      y.setAwarenessField('cursor', null)
+      doc.setAwarenessField('cursor', null)
     textType.observe(this._typeObserver)
     codeMirror.on('change', this._targetObserver)
     if (cursors) {
-      y.on('awareness', this._awarenessListener)
+      doc.on('awareness', this._awarenessListener)
       codeMirror.on('cursorActivity', this._cursorListener)
       codeMirror.on('blur', this._blurListeer)
       codeMirror.on('focus', this._cursorListener)
