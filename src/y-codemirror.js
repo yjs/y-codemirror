@@ -137,7 +137,7 @@ const prosemirrorCursorActivity = (y, cm, type) => {
  *     mode: 'javascript',
  *     lineNumbers: true
  *   })
- *   const binding = new CodeMirrorBinding(editor)
+ *   const binding = new CodeMirrorBinding(ytext, editor)
  *
  */
 export class CodeMirrorBinding {
