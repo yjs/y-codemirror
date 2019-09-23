@@ -164,7 +164,6 @@ export class CodeMirrorBinding {
     this._cursors = new Map()
     this._awarenessListener = event => {
       const f = clientId => {
-        console.log(clientId, doc.clientID)
         if (clientId !== doc.clientID) {
           updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId, awareness)
         }
