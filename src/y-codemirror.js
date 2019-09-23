@@ -54,7 +54,7 @@ const createRemoteCaret = (username, color) => {
   return caret
 }
 
-const updateRemoteSelection = (y, cm, type, cursors, clientId) => {
+const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
   // destroy current text mark
   const m = cursors.get(clientId)
   if (m !== undefined) {
@@ -65,7 +65,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId) => {
     cursors.delete(clientId)
   }
   // redraw caret and selection for clientId
-  const aw = y.awareness.get(clientId)
+  const aw = awareness.getStates().get(clientId);
   if (aw === undefined) {
     return
   }
@@ -80,13 +80,13 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId) => {
   if (cursor == null || cursor.anchor == null || cursor.head == null) {
     return
   }
-  const anchor = Y.toAbsolutePosition(Y.createRelativePositionFromJSON(cursor.anchor), y)
-  const head = Y.toAbsolutePosition(Y.createRelativePositionFromJSON(cursor.head), y)
+  const anchor = Y.createAbsolutePositionFromRelativePosition(JSON.parse(cursor.anchor), y)
+  const head = Y.createAbsolutePositionFromRelativePosition(JSON.parse(cursor.head), y)
   if (anchor !== null && head !== null && anchor.type === type && head.type === type) {
-    const headpos = cm.posFromIndex(head.offset)
-    const anchorpos = cm.posFromIndex(anchor.offset)
+    const headpos = cm.posFromIndex(head.index)
+    const anchorpos = cm.posFromIndex(anchor.index)
     let from, to
-    if (head.offset < anchor.offset) {
+    if (head.index < anchor.index) {
       from = headpos
       to = anchorpos
     } else {
@@ -96,30 +96,30 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId) => {
     const caretEl = createRemoteCaret(user.name, user.color)
     const caret = cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
     let sel = null
-    if (head.offset !== anchor.offset) {
+    if (head.index !== anchor.index) {
       sel = cm.markText(from, to, { css: `background-color: ${user.color}70`, inclusiveRight: true, inclusiveLeft: false })
     }
     cursors.set(clientId, { caret, sel })
   }
 }
 
-const prosemirrorCursorActivity = (y, cm, type) => {
+const codemirrorCursorActivity = (y, cm, type, awareness) => {
   if (!cm.hasFocus()) {
     return
   }
-  const newAnchor = Y.createRelativePositionByOffset(type, cm.indexFromPos(cm.getCursor('anchor')))
-  const newHead = Y.createRelativePositionByOffset(type, cm.indexFromPos(cm.getCursor('head')))
-  const aw = y.getLocalAwarenessInfo()
+  const newAnchor = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('anchor')))
+  const newHead = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('head')))
+  const aw = awareness.getLocalState()
   let currentAnchor = null
   let currentHead = null
   if (aw.cursor != null) {
-    currentAnchor = Y.createRelativePositionFromJSON(aw.cursor.anchor)
-    currentHead = Y.createRelativePositionFromJSON(aw.cursor.head)
+    currentAnchor = Y.createAbsolutePositionFromRelativePosition(JSON.parse(aw.cursor.anchor), y)
+    currentHead = Y.createAbsolutePositionFromRelativePosition(JSON.parse(aw.cursor.head), y)
   }
   if (aw.cursor == null || !Y.compareRelativePositions(currentAnchor, newAnchor) || !Y.compareRelativePositions(currentHead, newHead)) {
-    y.setAwarenessField('cursor', {
-      anchor: newAnchor.toJSON(),
-      head: newHead.toJSON()
+    awareness.setLocalStateField('cursor', {
+      anchor: JSON.stringify(newAnchor),
+      head: JSON.stringify(newHead)
     })
   }
 }
@@ -144,12 +144,14 @@ export class CodeMirrorBinding {
   /**
    * @param {Y.Text} textType
    * @param {CodeMirror} codeMirror
-   * @param {Object} [options={cursors: true}]
+   * @param {any} [awareness]
    */
-  constructor (textType, codeMirror, { cursors = true } = {}) {
+  constructor (textType, codeMirror, awareness) {
     const doc = textType.doc
     this.type = textType
     this.target = codeMirror
+    this.awareness = awareness
+
     /**
      * @private
      */
@@ -161,18 +163,24 @@ export class CodeMirrorBinding {
     this._targetObserver = (_, change) => targetObserver(this, change)
     this._cursors = new Map()
     this._awarenessListener = event => {
-      const f = clientId => updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId)
+      const f = clientId => {
+        console.log(clientId, doc.clientID)
+        if (clientId !== doc.clientID) {
+          updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId, awareness)
+        }
+      }
+
       event.added.forEach(f)
       event.removed.forEach(f)
       event.updated.forEach(f)
     }
-    this._cursorListener = () => prosemirrorCursorActivity(doc, codeMirror, textType)
-    this._blurListeer = () =>
-      doc.setAwarenessField('cursor', null)
+    this._cursorListener = () => codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+    this._blurListeer = () => awareness.setLocalStateField('cursor', null)
+
     textType.observe(this._typeObserver)
     codeMirror.on('change', this._targetObserver)
-    if (cursors) {
-      doc.on('awareness', this._awarenessListener)
+    if (awareness) {
+      awareness.on('change', this._awarenessListener)
       codeMirror.on('cursorActivity', this._cursorListener)
       codeMirror.on('blur', this._blurListeer)
       codeMirror.on('focus', this._cursorListener)
@@ -181,10 +189,10 @@ export class CodeMirrorBinding {
   destroy () {
     this.type.unobserve(this._typeObserver)
     this.target.off('change', this._targetObserver)
-    this.type.off('awareness', this._awarenessListener)
     this.target.off('cursorActivity', this._cursorListener)
     this.target.off('focus', this._cursorListener)
     this.target.off('blur', this._blurListeer)
+    this.awareness.off('change', this._awarenessListener)
     this.type = null
     this.target = null
   }
