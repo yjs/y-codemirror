@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/y-js/y-codemirror/issues"
   },
-  "homepage": "https://github.com/y-js/y-codemirror#readme"
+  "homepage": "https://github.com/y-js/y-codemirror#readme",
+  "peerDependencies": {
+    "yjs": "yjs@13.0.0-99"
+  }
 }
