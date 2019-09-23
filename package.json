@@ -1,11 +1,10 @@
 {
   "name": "y-codemirror",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CodeMirror binding for Yjs",
   "main": "./dist/y-codemirror.js",
   "module": "./src/y-codemirror.js",
-  "scripts": {
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/y-js/y-codemirror.git"
