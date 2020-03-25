@@ -65,7 +65,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     cursors.delete(clientId)
   }
   // redraw caret and selection for clientId
-  const aw = awareness.getStates().get(clientId);
+  const aw = awareness.getStates().get(clientId)
   if (aw === undefined) {
     return
   }
@@ -113,8 +113,8 @@ const codemirrorCursorActivity = (y, cm, type, awareness) => {
   let currentAnchor = null
   let currentHead = null
   if (aw.cursor != null) {
-    currentAnchor = Y.createAbsolutePositionFromRelativePosition(JSON.parse(aw.cursor.anchor), y)
-    currentHead = Y.createAbsolutePositionFromRelativePosition(JSON.parse(aw.cursor.head), y)
+    currentAnchor = Y.createRelativePositionFromJSON(JSON.parse(aw.cursor.anchor))
+    currentHead = Y.createRelativePositionFromJSON(JSON.parse(aw.cursor.head))
   }
   if (aw.cursor == null || !Y.compareRelativePositions(currentAnchor, newAnchor) || !Y.compareRelativePositions(currentHead, newHead)) {
     awareness.setLocalStateField('cursor', {
@@ -185,6 +185,7 @@ export class CodeMirrorBinding {
       codeMirror.on('focus', this._cursorListener)
     }
   }
+
   destroy () {
     this.type.unobserve(this._typeObserver)
     this.target.off('change', this._targetObserver)
