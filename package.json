@@ -7,8 +7,8 @@
   "module": "./src/y-codemirror.js",
   "sideEffects": false,
   "files": [
-    "./dist",
-    "./src"
+    "dist/*",
+    "src/*"
   ],
   "scripts": {
     "dist": "rm -rf dist && rollup -c && tsc",
