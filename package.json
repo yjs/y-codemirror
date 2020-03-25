@@ -1,6 +1,6 @@
 {
   "name": "y-codemirror",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CodeMirror binding for Yjs",
   "main": "./dist/y-codemirror.js",
   "types": "./dist/src/y-codemirror.d.ts",
