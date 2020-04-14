@@ -11,11 +11,14 @@
     "src/*"
   ],
   "scripts": {
-    "dist": "rm -rf dist && rollup -c && tsc",
+    "clean": "rm -rf dist",
+    "dist": "npm run clean && rollup -c && tsc",
     "watch": "rollup -wc",
-    "test": "npm run lint",
+    "test": "npm run dist && node test/test.node.cjs",
+    "test-extensive": "npm run dist && node test/test.node.cjs --production --repitition-time 10000",
     "lint": "standard && tsc",
-    "preversion": "npm run lint && npm run dist"
+    "preversion": "npm run lint && npm run test-extensive && npm run dist",
+    "debug": "concurrently 'http-server -o test.html' 'npm run watch'"
   },
   "repository": {
     "type": "git",
@@ -31,14 +34,22 @@
   },
   "homepage": "https://github.com/yjs/y-codemirror#readme",
   "peerDependencies": {
-    "yjs": "^13.0.0"
+    "yjs": "^13.0.0",
+    "codemirror": "^5.52.2"
   },
   "dependencies": {
-    "lib0": "^0.2.20"
+    "lib0": "^0.2.25"
   },
   "devDependencies": {
-    "rollup": "^2.2.0",
+    "@types/codemirror": "0.0.91",
+    "codemirror": "^5.52.2",
+    "concurrently": "^5.1.0",
+    "http-server": "^0.12.1",
+    "jsdom": "^16.2.2",
+    "rollup": "^2.6.1",
     "standard": "^14.3.3",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "y-webrtc": "^10.1.5",
+    "yjs": "^13.0.5"
   }
 }

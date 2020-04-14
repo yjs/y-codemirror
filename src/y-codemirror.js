@@ -5,11 +5,17 @@
 import { createMutex } from 'lib0/mutex.js'
 import * as math from 'lib0/math.js'
 import * as Y from 'yjs'
+import * as func from 'lib0/function.js'
 
+/**
+ * @param {CodemirrorBinding} binding
+ * @param {any} event
+ */
 const typeObserver = (binding, event) => {
   binding._mux(() => {
-    const cm = binding.target
-    cm.operation(() => {
+    const cmDoc = binding.cmDoc
+    const cm = cmDoc.getEditor()
+    const performChange = () => {
       const delta = event.delta
       let index = 0
       for (let i = 0; i < event.delta.length; i++) {
@@ -17,29 +23,37 @@ const typeObserver = (binding, event) => {
         if (d.retain) {
           index += d.retain
         } else if (d.insert) {
-          const pos = cm.posFromIndex(index)
-          cm.replaceRange(d.insert, pos, pos, 'prosemirror-binding')
+          const pos = cmDoc.posFromIndex(index)
+          cmDoc.replaceRange(d.insert, pos, pos, 'prosemirror-binding')
           index += d.insert.length
         } else if (d.delete) {
-          const start = cm.posFromIndex(index)
-          const end = cm.posFromIndex(index + d.delete)
-          cm.replaceRange('', start, end, 'prosemirror-binding')
+          const start = cmDoc.posFromIndex(index)
+          const end = cmDoc.posFromIndex(index + d.delete)
+          cmDoc.replaceRange('', start, end, 'prosemirror-binding')
         }
       }
-    })
+    }
+    // if possible, bundle the changes using cm.operation
+    if (cm) {
+      cm.operation(performChange)
+    } else {
+      performChange()
+    }
   })
 }
 
 const targetObserver = (binding, change) => {
   binding._mux(() => {
-    const start = binding.target.indexFromPos(change.from)
-    const delLen = change.removed.map(s => s.length).reduce(math.add) + change.removed.length - 1
-    if (delLen > 0) {
-      binding.type.delete(start, delLen)
-    }
-    if (change.text.length > 0) {
-      binding.type.insert(start, change.text.join('\n'))
-    }
+    binding.doc.transact(() => {
+      const start = binding.cmDoc.indexFromPos(change.from)
+      const delLen = change.removed.map(s => s.length).reduce(math.add) + change.removed.length - 1
+      if (delLen > 0) {
+        binding.type.delete(start, delLen)
+      }
+      if (change.text.length > 0) {
+        binding.type.insert(start, change.text.join('\n'))
+      }
+    }, binding)
   })
 }
 
@@ -51,10 +65,15 @@ const createRemoteCaret = (username, color) => {
   userDiv.setAttribute('style', `background-color: ${color}`)
   userDiv.insertBefore(document.createTextNode(username), null)
   caret.insertBefore(userDiv, null)
+  setTimeout(() => {
+    caret.classList.add('hide-name')
+  }, 2000)
   return caret
 }
 
 const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
+  // redraw caret and selection for clientId
+  const aw = awareness.getStates().get(clientId)
   // destroy current text mark
   const m = cursors.get(clientId)
   if (m !== undefined) {
@@ -64,8 +83,6 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     }
     cursors.delete(clientId)
   }
-  // redraw caret and selection for clientId
-  const aw = awareness.getStates().get(clientId)
   if (aw === undefined) {
     return
   }
@@ -94,22 +111,26 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
       to = headpos
     }
     const caretEl = createRemoteCaret(user.name, user.color)
+    // if position was "relatively" the same, do not show name again and hide instead
+    if (m && func.equalityFlat(aw.cursor.anchor, m.awCursor.anchor) && func.equalityFlat(aw.cursor.head, m.awCursor.head)) {
+      caretEl.classList.add('hide-name')
+    }
     const caret = cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
     let sel = null
     if (head.index !== anchor.index) {
       sel = cm.markText(from, to, { css: `background-color: ${user.color}70`, inclusiveRight: true, inclusiveLeft: false })
     }
-    cursors.set(clientId, { caret, sel })
+    cursors.set(clientId, { caret, sel, awCursor: cursor })
   }
 }
 
 const codemirrorCursorActivity = (y, cm, type, awareness) => {
-  if (!cm.hasFocus()) {
+  const aw = awareness.getLocalState()
+  if (!cm.hasFocus() || aw == null) {
     return
   }
   const newAnchor = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('anchor')))
   const newHead = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('head')))
-  const aw = awareness.getLocalState()
   let currentAnchor = null
   let currentHead = null
   if (aw.cursor != null) {
@@ -125,10 +146,6 @@ const codemirrorCursorActivity = (y, cm, type, awareness) => {
 }
 
 /**
- * @typedef {any} CodeMirror A codemirror instance
- */
-
-/**
  * A binding that binds a YText to a CodeMirror editor.
  *
  * @example
@@ -137,32 +154,35 @@ const codemirrorCursorActivity = (y, cm, type, awareness) => {
  *     mode: 'javascript',
  *     lineNumbers: true
  *   })
- *   const binding = new CodeMirrorBinding(ytext, editor)
+ *   const binding = new CodemirrorBinding(ytext, editor)
  *
  */
-export class CodeMirrorBinding {
+export class CodemirrorBinding {
   /**
    * @param {Y.Text} textType
-   * @param {CodeMirror} codeMirror
+   * @param {import('codemirror').Editor} codeMirror
    * @param {any} [awareness]
    */
   constructor (textType, codeMirror, awareness) {
     const doc = textType.doc
+    const cmDoc = codeMirror.getDoc()
+    this.doc = doc
     this.type = textType
-    this.target = codeMirror
+    this.cm = codeMirror
+    this.cmDoc = cmDoc
     this.awareness = awareness
-
-    /**
-     * @private
-     */
+    // this.undoManager = new Y.UndoManager(textType, { trackedOrigins: new Set([this]) })
     this._mux = createMutex()
     // set initial value
-    codeMirror.setValue(textType.toString())
+    cmDoc.setValue(textType.toString())
     // observe type and target
     this._typeObserver = event => typeObserver(this, event)
     this._targetObserver = (_, change) => targetObserver(this, change)
     this._cursors = new Map()
     this._awarenessListener = event => {
+      if (codeMirror.getDoc() !== cmDoc) {
+        return
+      }
       const f = clientId => {
         if (clientId !== doc.clientID) {
           updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId, awareness)
@@ -173,14 +193,21 @@ export class CodeMirrorBinding {
       event.removed.forEach(f)
       event.updated.forEach(f)
     }
-    this._cursorListener = () => codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+    this._cursorListener = () => {
+      if (codeMirror.getDoc() === cmDoc) {
+        codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+      }
+    }
     this._blurListeer = () => awareness.setLocalStateField('cursor', null)
 
     textType.observe(this._typeObserver)
-    codeMirror.on('change', this._targetObserver)
+    // @ts-ignore
+    cmDoc.on('change', this._targetObserver)
     if (awareness) {
+      codeMirror.on('swapDoc', this._blurListeer)
       awareness.on('change', this._awarenessListener)
-      codeMirror.on('cursorActivity', this._cursorListener)
+      // @ts-ignore
+      cmDoc.on('cursorActivity', this._cursorListener)
       codeMirror.on('blur', this._blurListeer)
       codeMirror.on('focus', this._cursorListener)
     }
@@ -188,12 +215,18 @@ export class CodeMirrorBinding {
 
   destroy () {
     this.type.unobserve(this._typeObserver)
-    this.target.off('change', this._targetObserver)
-    this.target.off('cursorActivity', this._cursorListener)
-    this.target.off('focus', this._cursorListener)
-    this.target.off('blur', this._blurListeer)
+    this.cm.off('swapDoc', this._blurListeer)
+    // @ts-ignore
+    this.cmDoc.off('change', this._targetObserver)
+    this.cm.off('cursorActivity', this._cursorListener)
+    this.cm.off('focus', this._cursorListener)
+    this.cm.off('blur', this._blurListeer)
     this.awareness.off('change', this._awarenessListener)
     this.type = null
-    this.target = null
+    this.cm = null
+    this.cmDoc = null
+    // this.undoManager.destroy()
   }
 }
+
+export const CodeMirrorBinding = CodemirrorBinding
