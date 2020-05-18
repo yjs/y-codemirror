@@ -2,7 +2,7 @@
   "name": "y-codemirror",
   "version": "2.0.0",
   "description": "CodeMirror binding for Yjs",
-  "main": "./dist/y-codemirror.js",
+  "main": "./dist/y-codemirror.cjs",
   "types": "./dist/src/y-codemirror.d.ts",
   "module": "./src/y-codemirror.js",
   "sideEffects": false,
