@@ -221,7 +221,9 @@ export class CodemirrorBinding {
     this.cm.off('cursorActivity', this._cursorListener)
     this.cm.off('focus', this._cursorListener)
     this.cm.off('blur', this._blurListeer)
-    this.awareness.off('change', this._awarenessListener)
+    if (this.awareness) {
+      this.awareness.off('change', this._awarenessListener)
+    }
     this.type = null
     this.cm = null
     this.cmDoc = null
