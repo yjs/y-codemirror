@@ -78,7 +78,7 @@ const checkResult = result => {
     const p2 = result.testObjects[i].getValue()
     t.compare(p1, p2)
   }
-  console.log(result.testObjects[0].getValue())
+  // console.log(result.testObjects[0].getValue())
   charCounter = 0
 }
 

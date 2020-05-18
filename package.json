@@ -38,18 +38,18 @@
     "codemirror": "^5.52.2"
   },
   "dependencies": {
-    "lib0": "^0.2.25"
+    "lib0": "^0.2.26"
   },
   "devDependencies": {
     "@types/codemirror": "0.0.91",
-    "codemirror": "^5.52.2",
-    "concurrently": "^5.1.0",
-    "http-server": "^0.12.1",
+    "codemirror": "^5.53.2",
+    "concurrently": "^5.2.0",
+    "http-server": "^0.12.3",
     "jsdom": "^16.2.2",
-    "rollup": "^2.6.1",
-    "standard": "^14.3.3",
-    "typescript": "^3.8.3",
+    "rollup": "^2.10.2",
+    "standard": "^14.3.4",
+    "typescript": "^3.9.2",
     "y-webrtc": "^10.1.5",
-    "yjs": "^13.0.5"
+    "yjs": "^13.0.8"
   }
 }
