@@ -7,6 +7,8 @@ import * as math from 'lib0/math.js'
 import * as Y from 'yjs'
 import * as func from 'lib0/function.js'
 
+export const cmOrigin = 'prosemirror-binding'
+
 /**
  * @param {CodemirrorBinding} binding
  * @param {any} event
@@ -15,6 +17,19 @@ const typeObserver = (binding, event) => {
   binding._mux(() => {
     const cmDoc = binding.cmDoc
     const cm = cmDoc.getEditor()
+    // Normally the position is right-associated
+    // But when remote changes happen, it looks like the remote user is hijacking your position.
+    // Just for remote insertions, we make the collapsed cursor left-associated.
+    // If selection is not collapsed, we only make "to" left associated
+    let anchor = cm.indexFromPos(cm.getCursor('anchor'))
+    let head = cm.indexFromPos(cm.getCursor('head'))
+    const switchSel = head < anchor
+    // normalize selection so that anchor < head, switch back later
+    if (switchSel) {
+      const tmp = head
+      head = anchor
+      anchor = tmp
+    }
     const performChange = () => {
       const delta = event.delta
       let index = 0
@@ -23,13 +38,25 @@ const typeObserver = (binding, event) => {
         if (d.retain) {
           index += d.retain
         } else if (d.insert) {
+          if (index < anchor || (anchor < head && index === anchor)) {
+            anchor += d.insert.length
+          }
+          if (index < head) {
+            head += d.insert.length
+          }
           const pos = cmDoc.posFromIndex(index)
-          cmDoc.replaceRange(d.insert, pos, pos, 'prosemirror-binding')
+          cmDoc.replaceRange(d.insert, pos, pos, cmOrigin)
           index += d.insert.length
         } else if (d.delete) {
+          if (index < anchor) {
+            anchor = math.max(anchor - d.delete, index)
+          }
+          if (index < head) {
+            head += math.max(head - d.delete, index)
+          }
           const start = cmDoc.posFromIndex(index)
           const end = cmDoc.posFromIndex(index + d.delete)
-          cmDoc.replaceRange('', start, end, 'prosemirror-binding')
+          cmDoc.replaceRange('', start, end, cmOrigin)
         }
       }
     }
@@ -39,6 +66,12 @@ const typeObserver = (binding, event) => {
     } else {
       performChange()
     }
+    if (switchSel) {
+      const tmp = head
+      head = anchor
+      anchor = tmp
+    }
+    cm.setSelection(cm.posFromIndex(anchor), cm.posFromIndex(head))
   })
 }
 

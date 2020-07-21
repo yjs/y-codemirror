@@ -22,7 +22,8 @@
     "test-extensive": "npm run dist && node test/test.node.cjs --production --repitition-time 10000",
     "lint": "standard && tsc",
     "preversion": "npm run lint && npm run test-extensive && npm run dist",
-    "debug": "concurrently 'http-server -o test.html' 'npm run watch'"
+    "debug": "concurrently 'http-server -o test.html' 'npm run watch'",
+    "start": "concurrently 'http-server -o demo/index.html' 'npm run watch'"
   },
   "repository": {
     "type": "git",
