@@ -126,7 +126,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
 
 const codemirrorCursorActivity = (y, cm, type, awareness) => {
   const aw = awareness.getLocalState()
-  if (!cm.hasFocus() || aw == null) {
+  if (!cm.hasFocus() || aw == null || !cm.display.wrapper.ownerDocument.hasFocus()) {
     return
   }
   const newAnchor = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('anchor')))

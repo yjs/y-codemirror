@@ -6,6 +6,10 @@
   "types": "./dist/src/y-codemirror.d.ts",
   "module": "./src/y-codemirror.js",
   "sideEffects": false,
+  "funding": {
+    "type": "GitHub Sponsors ❤",
+    "url": "https://github.com/sponsors/dmonad"
+  },
   "files": [
     "dist/*",
     "src/*"
