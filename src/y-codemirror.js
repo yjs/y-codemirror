@@ -151,7 +151,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     const caret = cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
     let sel = null
     if (head.index !== anchor.index) {
-      sel = cm.markText(from, to, { css: `background-color: ${user.color}70`, inclusiveRight: true, inclusiveLeft: false })
+      sel = cm.markText(from, to, { css: `background-color: ${user.color}70;`, inclusiveRight: true, inclusiveLeft: false })
     }
     cursors.set(clientId, { caret, sel, awCursor: cursor })
   }
