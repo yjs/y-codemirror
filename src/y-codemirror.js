@@ -108,6 +108,7 @@ const createRemoteCaret = (username, color) => {
 
 const createEmptyLinePlaceholder = (color) => {
   const el = document.createElement('span')
+  el.setAttribute('class', 'y-line-selection')
   el.setAttribute('style', `display: inline-block; position: absolute; left: 4px; right: 4px; top: 0; bottom: 0; background-color: ${color}70`)
   return el
 }
