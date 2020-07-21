@@ -6,6 +6,8 @@ import { createMutex } from 'lib0/mutex.js'
 import * as math from 'lib0/math.js'
 import * as Y from 'yjs'
 import * as func from 'lib0/function.js'
+import * as eventloop from 'lib0/eventloop.js'
+import CodeMirror from 'codemirror'
 
 export const cmOrigin = 'prosemirror-binding'
 
@@ -104,16 +106,22 @@ const createRemoteCaret = (username, color) => {
   return caret
 }
 
+const createEmptyLinePlaceholder = (color) => {
+  const el = document.createElement('span')
+  el.setAttribute('style', `display: inline-block; position: absolute; left: 4px; right: 4px; top: 0; bottom: 0; background-color: ${color}70`)
+  return el
+}
+
 const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
   // redraw caret and selection for clientId
   const aw = awareness.getStates().get(clientId)
   // destroy current text mark
   const m = cursors.get(clientId)
   if (m !== undefined) {
-    m.caret.clear()
-    if (m.sel !== null) {
-      m.sel.clear()
+    if (m.caret) {
+      m.caret.clear()
     }
+    m.sel.forEach(sel => sel.clear())
     cursors.delete(clientId)
   }
   if (aw === undefined) {
@@ -148,11 +156,23 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     if (m && func.equalityFlat(aw.cursor.anchor, m.awCursor.anchor) && func.equalityFlat(aw.cursor.head, m.awCursor.head)) {
       caretEl.classList.add('hide-name')
     }
-    const caret = cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
-    let sel = null
+    const sel = []
+
     if (head.index !== anchor.index) {
-      sel = cm.markText(from, to, { css: `background-color: ${user.color}70;`, inclusiveRight: true, inclusiveLeft: false })
+      if (from.line !== to.line && from.ch !== 0) {
+        // start of selection will only be a simple text-selection
+        sel.push(cm.markText(from, new CodeMirror.Pos(from.line + 1, 0), { css: `background-color: ${user.color}70;`, inclusiveRight: false, inclusiveLeft: false }))
+        from = new CodeMirror.Pos(from.line + 1, 0)
+      }
+      while (from.line !== to.line) {
+        // middle of selection is always a whole-line selection. We add a widget at the first position which will fill the background.
+        sel.push(cm.setBookmark(new CodeMirror.Pos(from.line, 0), { widget: createEmptyLinePlaceholder(user.color) }))
+        from = new CodeMirror.Pos(from.line + 1, 0)
+      }
+      sel.push(cm.markText(from, to, { css: `background-color: ${user.color}70;`, inclusiveRight: false, inclusiveLeft: false }))
     }
+    // only render caret if not the complete last line was selected (in this case headpos.ch === 0)
+    const caret = sel.length > 0 && to === headpos && headpos.ch === 0 ? null : cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
     cursors.set(clientId, { caret, sel, awCursor: cursor })
   }
 }
@@ -212,19 +232,28 @@ export class CodemirrorBinding {
     this._typeObserver = event => typeObserver(this, event)
     this._targetObserver = (_, change) => targetObserver(this, change)
     this._cursors = new Map()
+    this._changedCursors = new Set()
+    this._debounceCursorEvent = eventloop.createDebouncer(10)
     this._awarenessListener = event => {
       if (codeMirror.getDoc() !== cmDoc) {
         return
       }
       const f = clientId => {
         if (clientId !== doc.clientID) {
-          updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId, awareness)
+          this._changedCursors.add(clientId)
         }
       }
-
       event.added.forEach(f)
       event.removed.forEach(f)
       event.updated.forEach(f)
+      if (this._changedCursors.size > 0) {
+        this._debounceCursorEvent(() => {
+          this._changedCursors.forEach(clientId => {
+            updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId, awareness)
+          })
+          this._changedCursors.clear()
+        })
+      }
     }
     this._cursorListener = () => {
       if (codeMirror.getDoc() === cmDoc) {

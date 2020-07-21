@@ -15,7 +15,7 @@ editorContainer.setAttribute('id', 'editor')
 document.body.insertBefore(editorContainer, null)
 const editor = CodeMirror(editorContainer, {
   mode: 'javascript',
-  lineNumbers: false
+  lineNumbers: true
 })
 
 const binding = new CodemirrorBinding(yText, editor, provider.awareness)
