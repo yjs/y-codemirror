@@ -281,7 +281,8 @@ export class CodemirrorBinding {
     this.cm.off('swapDoc', this._blurListeer)
     // @ts-ignore
     this.cmDoc.off('change', this._targetObserver)
-    this.cm.off('cursorActivity', this._cursorListener)
+    // @ts-ignore
+    this.cmDoc.off('cursorActivity', this._cursorListener)
     this.cm.off('focus', this._cursorListener)
     this.cm.off('blur', this._blurListeer)
     if (this.awareness) {
