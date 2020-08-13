@@ -54,7 +54,7 @@ const typeObserver = (binding, event) => {
             anchor = math.max(anchor - d.delete, index)
           }
           if (index < head) {
-            head += math.max(head - d.delete, index)
+            head = math.max(head - d.delete, index)
           }
           const start = cmDoc.posFromIndex(index)
           const end = cmDoc.posFromIndex(index + d.delete)
