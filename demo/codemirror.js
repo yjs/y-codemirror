@@ -7,7 +7,7 @@ import CodeMirror from 'codemirror'
 import 'codemirror/mode/javascript/javascript.js'
 
 const ydoc = new Y.Doc()
-const provider = new WebrtcProvider('codemirror-demo-room', ydoc)
+const provider = new WebrtcProvider('codemirror-demo-room-x', ydoc)
 const yText = ydoc.getText('codemirror')
 
 const editorContainer = document.createElement('div')

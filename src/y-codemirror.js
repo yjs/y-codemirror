@@ -7,6 +7,7 @@ import * as math from 'lib0/math.js'
 import * as Y from 'yjs'
 import * as func from 'lib0/function.js'
 import * as eventloop from 'lib0/eventloop.js'
+import * as diff from 'lib0/diff.js'
 import CodeMirror from 'codemirror'
 
 export const cmOrigin = 'prosemirror-binding'
@@ -77,16 +78,25 @@ const typeObserver = (binding, event) => {
   })
 }
 
-const targetObserver = (binding, change) => {
+const targetObserver = (binding, changes) => {
   binding._mux(() => {
     binding.doc.transact(() => {
-      const start = binding.cmDoc.indexFromPos(change.from)
-      const delLen = change.removed.map(s => s.length).reduce(math.add) + change.removed.length - 1
-      if (delLen > 0) {
-        binding.type.delete(start, delLen)
-      }
-      if (change.text.length > 0) {
-        binding.type.insert(start, change.text.join('\n'))
+      if (changes.length > 1) {
+        // If there are several consecutive changes, we can't reliably compute the positions anymore. See y-codemirror#11
+        // Instead, we will compute the diff and apply the changes
+        const d = diff.simpleDiffString(binding.type.toString(), binding.cmDoc.getValue())
+        binding.type.delete(d.index, d.remove)
+        binding.type.insert(d.index, d.insert)
+      } else {
+        const change = changes[0]
+        const start = binding.cmDoc.indexFromPos(change.from)
+        const delLen = change.removed.map(s => s.length).reduce(math.add) + change.removed.length - 1
+        if (delLen > 0) {
+          binding.type.delete(start, delLen)
+        }
+        if (change.text.length > 0) {
+          binding.type.insert(start, change.text.join('\n'))
+        }
       }
     }, binding)
   })
@@ -231,7 +241,11 @@ export class CodemirrorBinding {
     cmDoc.setValue(textType.toString())
     // observe type and target
     this._typeObserver = event => typeObserver(this, event)
-    this._targetObserver = (_, change) => targetObserver(this, change)
+    this._targetObserver = (instance, changes) => {
+      if (instance.getDoc() === cmDoc) {
+        targetObserver(this, changes)
+      }
+    }
     this._cursors = new Map()
     this._changedCursors = new Set()
     this._debounceCursorEvent = eventloop.createDebouncer(10)
@@ -258,19 +272,21 @@ export class CodemirrorBinding {
     }
     this._cursorListener = () => {
       if (codeMirror.getDoc() === cmDoc) {
-        codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+        setTimeout(() => {
+          codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+        }, 0)
       }
     }
     this._blurListeer = () => awareness.setLocalStateField('cursor', null)
 
     textType.observe(this._typeObserver)
     // @ts-ignore
-    cmDoc.on('change', this._targetObserver)
+    codeMirror.on('changes', this._targetObserver)
     if (awareness) {
       codeMirror.on('swapDoc', this._blurListeer)
       awareness.on('change', this._awarenessListener)
       // @ts-ignore
-      cmDoc.on('cursorActivity', this._cursorListener)
+      codeMirror.on('cursorActivity', this._cursorListener)
       codeMirror.on('blur', this._blurListeer)
       codeMirror.on('focus', this._cursorListener)
     }
@@ -280,9 +296,9 @@ export class CodemirrorBinding {
     this.type.unobserve(this._typeObserver)
     this.cm.off('swapDoc', this._blurListeer)
     // @ts-ignore
-    this.cmDoc.off('change', this._targetObserver)
+    this.cm.off('changes', this._targetObserver)
     // @ts-ignore
-    this.cmDoc.off('cursorActivity', this._cursorListener)
+    this.cm.off('cursorActivity', this._cursorListener)
     this.cm.off('focus', this._cursorListener)
     this.cm.off('blur', this._blurListeer)
     if (this.awareness) {
