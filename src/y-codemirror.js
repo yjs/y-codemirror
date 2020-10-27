@@ -66,6 +66,7 @@ const typeObserver = (binding, event) => {
     // if possible, bundle the changes using cm.operation
     if (cm) {
       cm.operation(performChange)
+      cm.endOperation()
     } else {
       performChange()
     }
