@@ -9,6 +9,45 @@ import CodeMirror from 'codemirror'
 import { CodemirrorBinding } from '../src/y-codemirror.js'
 
 /**
+ * @param {t.TestCase} tc
+ */
+export const testUndoManager = tc => {
+  const editor = CodeMirror(document.createElement('div'), {
+    mode: 'javascript',
+    lineNumbers: true
+  })
+  const ydoc = new Y.Doc()
+  const ytext = ydoc.getText()
+  ytext.insert(0, 'abc')
+  const yUndoManager = new Y.UndoManager(ytext)
+  const binding = new CodemirrorBinding(ytext, editor, null, { yUndoManager })
+  editor.setSelection(editor.posFromIndex(1), editor.posFromIndex(2))
+  editor.replaceSelection('')
+  const posAfterAnchor = editor.indexFromPos(editor.getCursor('anchor'))
+  const posAfterHead = editor.indexFromPos(editor.getCursor('head'))
+  yUndoManager.undo()
+  const posBeforeAnchor = editor.indexFromPos(editor.getCursor('anchor'))
+  const posBeforeHead = editor.indexFromPos(editor.getCursor('head'))
+  t.assert(posBeforeAnchor === 1 && posBeforeHead === 2)
+  yUndoManager.redo()
+  t.assert(
+    editor.indexFromPos(editor.getCursor('anchor')) === posAfterAnchor &&
+    editor.indexFromPos(editor.getCursor('head')) === posAfterHead
+  )
+  yUndoManager.undo()
+  t.assert(
+    editor.indexFromPos(editor.getCursor('anchor')) === posBeforeAnchor &&
+    editor.indexFromPos(editor.getCursor('head')) === posBeforeHead
+  )
+  // destroy binding and check that undo still works
+  binding.destroy()
+  yUndoManager.redo()
+  t.assert(ytext.toString() === 'ac')
+  yUndoManager.undo()
+  t.assert(ytext.toString() === 'abc')
+}
+
+/**
  * @param {any} y
  * @return {CodeMirror.Editor}
  */

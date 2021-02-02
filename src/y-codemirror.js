@@ -225,17 +225,63 @@ export class CodemirrorBinding {
   /**
    * @param {Y.Text} textType
    * @param {import('codemirror').Editor} codeMirror
-   * @param {any} [awareness]
+   * @param {any | null} [awareness]
+   * @param {{ yUndoManager?: Y.UndoManager }} [options]
    */
-  constructor (textType, codeMirror, awareness) {
+  constructor (textType, codeMirror, awareness = null, { yUndoManager = null } = {}) {
     const doc = textType.doc
     const cmDoc = codeMirror.getDoc()
     this.doc = doc
     this.type = textType
     this.cm = codeMirror
     this.cmDoc = cmDoc
-    this.awareness = awareness
-    // this.undoManager = new Y.UndoManager(textType, { trackedOrigins: new Set([this]) })
+    this.awareness = awareness || null
+    this.yUndoManager = yUndoManager
+    this._onStackItemAdded = ({ stackItem, changedParentTypes }) => {
+      // only store metadata if this type was affected
+      if (changedParentTypes.has(textType) && this._beforeChangeSelection) {
+        stackItem.meta.set(this, this._beforeChangeSelection)
+      }
+    }
+    this._onStackItemPopped = ({ stackItem }) => {
+      const sel = stackItem.meta.get(this)
+      if (sel) {
+        const anchor = Y.createAbsolutePositionFromRelativePosition(sel.anchor, doc).index
+        const head = Y.createAbsolutePositionFromRelativePosition(sel.head, doc).index
+        codeMirror.setSelection(codeMirror.posFromIndex(anchor), codeMirror.posFromIndex(head))
+        this._beforeChange()
+      }
+    }
+    if (yUndoManager) {
+      yUndoManager.trackedOrigins.add(this) // track changes performed by this editor binding
+      const editorUndo = cm => {
+        // Keymaps always start with an active operation.
+        // End the current operation so that the event is fired at the correct moment.
+        // @todo check cm.curOp in typeListener and endOperation always.
+        cm.endOperation()
+        yUndoManager.undo()
+        cm.startOperation()
+      }
+      const editorRedo = cm => {
+        cm.endOperation()
+        yUndoManager.redo()
+        cm.startOperation()
+      }
+      codeMirror.addKeyMap({
+        // pc
+        'Ctrl-Z': editorUndo,
+        'Shift-Ctrl-Z': editorRedo,
+        'Ctrl-Y': editorRedo,
+        // mac
+        'Cmd-Z': editorUndo,
+        'Shift-Cmd-Z': editorRedo,
+        'Cmd-Y': editorRedo
+      })
+
+      yUndoManager.on('stack-item-added', this._onStackItemAdded)
+      yUndoManager.on('stack-item-popped', this._onStackItemPopped)
+    }
+
     this._mux = createMutex()
     // set initial value
     cmDoc.setValue(textType.toString())
@@ -282,6 +328,20 @@ export class CodemirrorBinding {
     textType.observe(this._typeObserver)
     // @ts-ignore
     codeMirror.on('changes', this._targetObserver)
+    /**
+     * @type {{ anchor: Y.RelativePosition, head: Y.RelativePosition } | null}
+     */
+    this._beforeChangeSelection = null
+    this._beforeChange = () => {
+      // update the the beforeChangeSelection that is stored befor each change to the editor (except when applying remote changes)
+      this._mux(() => {
+        // store the selection before the change is applied so we can restore it with the undo manager.
+        const anchor = Y.createRelativePositionFromTypeIndex(textType, codeMirror.indexFromPos(codeMirror.getCursor('anchor')))
+        const head = Y.createRelativePositionFromTypeIndex(textType, codeMirror.indexFromPos(codeMirror.getCursor('head')))
+        this._beforeChangeSelection = { anchor, head }
+      })
+    }
+    codeMirror.on('beforeChange', this._beforeChange)
     if (awareness) {
       codeMirror.on('swapDoc', this._blurListeer)
       awareness.on('change', this._awarenessListener)
@@ -297,6 +357,7 @@ export class CodemirrorBinding {
     this.cm.off('swapDoc', this._blurListeer)
     // @ts-ignore
     this.cm.off('changes', this._targetObserver)
+    this.cm.off('beforeChange', this._beforeChange)
     // @ts-ignore
     this.cm.off('cursorActivity', this._cursorListener)
     this.cm.off('focus', this._cursorListener)
@@ -304,10 +365,13 @@ export class CodemirrorBinding {
     if (this.awareness) {
       this.awareness.off('change', this._awarenessListener)
     }
+    if (this.yUndoManager) {
+      this.yUndoManager.off('stack-item-added', this._onStackItemAdded)
+      this.yUndoManager.off('stack-item-popped', this._onStackItemPopped)
+    }
     this.type = null
     this.cm = null
     this.cmDoc = null
-    // this.undoManager.destroy()
   }
 }
 

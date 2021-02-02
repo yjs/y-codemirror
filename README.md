@@ -24,13 +24,14 @@ import CodeMirror from 'codemirror'
 const ydoc = new Y.Doc()
 const provider = new WebrtcProvider('codemirror-demo-room', ydoc)
 const yText = ydoc.getText('codemirror')
+const yUndoManager = new Y.UndoManager(yText)
 
 const editor = CodeMirror(editorDiv, {
   mode: 'javascript',
   lineNumbers: true
 })
 
-const binding = new CodemirrorBinding(yText, editor, provider.awareness)
+const binding = new CodemirrorBinding(yText, editor, provider.awareness, { yUndoManager })
 ```
 
 Also look [here](https://github.com/yjs/yjs-demos/tree/master/codemirror) for a working example.
@@ -38,9 +39,12 @@ Also look [here](https://github.com/yjs/yjs-demos/tree/master/codemirror) for a 
 ## API
 
 ```js
-const binding = new CodemirrorBinding(yText: Y.Text, editor: CodeMirror.Editor, [, awareness: y-protocols.Awareness])
+const binding = new CodemirrorBinding(yText: Y.Text, editor: CodeMirror.Editor, [ awareness: y-protocols.Awareness|null, [ { yUndoManager: Y.UndoManager } ]])
 ```
+
 Binds a Y.Text type to the CodeMirror document that is currently in use. You can <code>swapDoc</code> the CodeMirror document while a binding is active. Make sure to destroy a binding when it is no longer needed.
+
+When `Y.UndoManager` is defined, y-codemirror will use a custom collaborative undo manager instead of CodeMirror's UndoManager. The collaboration-aware Y.UndoManager tracks only local changes by default and doesn't track changes from remote users. You should undo/redo changes using `yUndoManager.undo()` / `yUndoManager.redo()` instead of using CodeMirror's history manager. See the extensive documentation on [`Y.UndoManager`](https://docs.yjs.dev/api/undo-manager) for documentation on how to filter specific changes.
 
 <dl>
   <b><code>destroy()</code></b>
