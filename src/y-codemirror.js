@@ -368,6 +368,7 @@ export class CodemirrorBinding {
     if (this.yUndoManager) {
       this.yUndoManager.off('stack-item-added', this._onStackItemAdded)
       this.yUndoManager.off('stack-item-popped', this._onStackItemPopped)
+      this.yUndoManager.trackedOrigins.delete(this)
     }
     this.type = null
     this.cm = null
