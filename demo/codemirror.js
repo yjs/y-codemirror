@@ -10,7 +10,10 @@ window.addEventListener('load', () => {
   const ydoc = new Y.Doc()
   const provider = new WebrtcProvider('codemirror-demo-room-x', ydoc)
   const yText = ydoc.getText('codemirror')
-  const yUndoManager = new Y.UndoManager(yText)
+  const yUndoManager = new Y.UndoManager(yText, {
+    // Add all origins that you want to track. The editor binding adds itself automatically.
+    trackedOrigins: new Set([])
+  })
 
   const editorContainer = document.createElement('div')
   editorContainer.setAttribute('id', 'editor')
