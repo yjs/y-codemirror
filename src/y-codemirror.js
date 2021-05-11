@@ -74,7 +74,7 @@ const typeObserver = (binding, event) => {
       head = anchor
       anchor = tmp
     }
-    cm.setSelection(cm.posFromIndex(anchor), cm.posFromIndex(head))
+    cm.setSelection(cm.posFromIndex(anchor), cm.posFromIndex(head), { scroll: false })
   })
 }
 
