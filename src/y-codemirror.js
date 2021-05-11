@@ -117,10 +117,16 @@ const createRemoteCaret = (username, color) => {
 }
 
 const createEmptyLinePlaceholder = (color) => {
-  const el = document.createElement('span')
-  el.setAttribute('class', 'y-line-selection')
-  el.setAttribute('style', `display: inline-block; position: absolute; left: 4px; right: 4px; top: 0; bottom: 0; background-color: ${color}70`)
-  return el
+  const placeholder = document.createElement('span')
+  placeholder.setAttribute('style', 'user-select: none;')
+  const emptyTxt = document.createElement('span')
+  emptyTxt.insertBefore(document.createTextNode(''), null)
+  const sel = document.createElement('span')
+  sel.setAttribute('class', 'y-line-selection')
+  sel.setAttribute('style', `display: inline-block; position: absolute; left: 4px; right: 4px; top: 0; bottom: 0; background-color: ${color}70`)
+  placeholder.insertBefore(sel, null)
+  placeholder.insertBefore(emptyTxt, null)
+  return placeholder
 }
 
 const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
