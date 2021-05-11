@@ -43,20 +43,20 @@
     "codemirror": "^5.52.2"
   },
   "dependencies": {
-    "lib0": "^0.2.35"
+    "lib0": "^0.2.41"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.1.0",
-    "@rollup/plugin-node-resolve": "^11.1.1",
+    "@rollup/plugin-node-resolve": "^11.2.1",
     "@types/codemirror": "0.0.91",
-    "codemirror": "^5.59.2",
+    "codemirror": "^5.61.0",
     "concurrently": "^5.3.0",
     "http-server": "^0.12.3",
-    "jsdom": "^16.4.0",
-    "rollup": "^2.38.4",
+    "jsdom": "^16.5.3",
+    "rollup": "^2.47.0",
     "standard": "^14.3.4",
-    "typescript": "^3.9.7",
+    "typescript": "^3.9.9",
     "y-webrtc": "^10.1.8",
-    "yjs": "^13.4.14"
+    "yjs": "^13.5.5"
   }
 }
