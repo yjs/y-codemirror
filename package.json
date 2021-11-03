@@ -10,6 +10,13 @@
     "type": "GitHub Sponsors ❤",
     "url": "https://github.com/sponsors/dmonad"
   },
+  "exports": {
+    ".": {
+      "import": "./src/y-codemirror.js",
+      "require": "./dist/y-codemirror.cjs"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist/*",
     "src/*"
