@@ -2,13 +2,13 @@
  * @module bindings/textarea
  */
 
-import { createMutex } from 'lib0/mutex.js'
-import * as math from 'lib0/math.js'
+import { createMutex } from 'lib0/mutex'
+import * as math from 'lib0/math'
 import * as Y from 'yjs'
-import * as func from 'lib0/function.js'
-import * as eventloop from 'lib0/eventloop.js'
-import { Observable } from 'lib0/observable.js'
-import * as diff from 'lib0/diff.js'
+import * as func from 'lib0/function'
+import * as eventloop from 'lib0/eventloop'
+import { Observable } from 'lib0/observable'
+import * as diff from 'lib0/diff'
 import CodeMirror from 'codemirror'
 
 export const cmOrigin = 'y-codemirror'

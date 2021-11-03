@@ -20,15 +20,7 @@ export default [{
     name: 'y-codemirror',
     file: 'dist/y-codemirror.cjs',
     format: 'cjs',
-    sourcemap: true,
-    paths: path => {
-      if (/^lib0\//.test(path)) {
-        return `lib0/dist${path.slice(4, -3)}.cjs`
-      } else if (/^y-protocols\//.test(path)) {
-        return `y-protocols/dist${path.slice(11, -3)}.cjs`
-      }
-      return path
-    }
+    sourcemap: true
   }]
 }, {
   input: './demo/codemirror.js',
@@ -66,12 +58,7 @@ export default [{
     name: 'test',
     file: 'dist/test.cjs',
     format: 'cjs',
-    sourcemap: true,
-    paths: path => {
-      if (/^lib0\//.test(path)) {
-        return `lib0/dist/${path.slice(5, -3)}.cjs`
-      }
-    }
+    sourcemap: true
   },
   plugins: [
     debugResolve,
