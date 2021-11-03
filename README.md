@@ -71,6 +71,11 @@ Reference to the Yjs document.
   <dd>
 Reference to the Awareness instance, if defined.
   </dd>
+  <b><code>on('cursorActivity', (editor: CodeMirror) => void)</code></b>
+  <dd>
+This event is similar to CodeMirror's 'cursorActivity' event, but is fired
+after all changes have been applied to the editor and to the Y.Text instance.
+  </dd>
 </dl>
 
 The shared cursors depend on the Awareness instance that is exported by most providers. The Awareness protocol handles non-permanent data like the number of users, their user names, their cursor location, and their colors. You can change the name and color of the user like this:

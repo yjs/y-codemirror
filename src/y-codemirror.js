@@ -7,10 +7,11 @@ import * as math from 'lib0/math.js'
 import * as Y from 'yjs'
 import * as func from 'lib0/function.js'
 import * as eventloop from 'lib0/eventloop.js'
+import { Observable } from 'lib0/observable.js'
 import * as diff from 'lib0/diff.js'
 import CodeMirror from 'codemirror'
 
-export const cmOrigin = 'prosemirror-binding'
+export const cmOrigin = 'y-codemirror'
 
 /**
  * @param {CodemirrorBinding} binding
@@ -78,6 +79,10 @@ const typeObserver = (binding, event) => {
   })
 }
 
+/**
+ * @param {CodemirrorBinding} binding
+ * @param {Array<any>} changes
+ */
 const targetObserver = (binding, changes) => {
   binding._mux(() => {
     binding.doc.transact(() => {
@@ -100,6 +105,10 @@ const targetObserver = (binding, changes) => {
       }
     }, binding)
   })
+  if (binding._pendingCursorEvent) {
+    binding._pendingCursorEvent = false
+    binding.emit('cursorActivity', [binding])
+  }
 }
 
 const createRemoteCaret = (username, color) => {
@@ -227,7 +236,7 @@ const codemirrorCursorActivity = (y, cm, type, awareness) => {
  *   const binding = new CodemirrorBinding(ytext, editor)
  *
  */
-export class CodemirrorBinding {
+export class CodemirrorBinding extends Observable {
   /**
    * @param {Y.Text} textType
    * @param {import('codemirror').Editor} codeMirror
@@ -235,6 +244,7 @@ export class CodemirrorBinding {
    * @param {{ yUndoManager?: Y.UndoManager }} [options]
    */
   constructor (textType, codeMirror, awareness = null, { yUndoManager = null } = {}) {
+    super()
     const doc = textType.doc
     const cmDoc = codeMirror.getDoc()
     this.doc = doc
@@ -322,13 +332,21 @@ export class CodemirrorBinding {
         })
       }
     }
+    this._pendingCursorEvent = false
     this._cursorListener = () => {
       if (codeMirror.getDoc() === cmDoc) {
+        this._pendingCursorEvent = true
         setTimeout(() => {
-          codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+          if (this._pendingCursorEvent) {
+            this._pendingCursorEvent = false
+            this.emit('cursorActivity', [codeMirror])
+          }
         }, 0)
       }
     }
+    this.on('cursorActivity', () => {
+      codemirrorCursorActivity(doc, codeMirror, textType, awareness)
+    })
     this._blurListeer = () => awareness.setLocalStateField('cursor', null)
 
     textType.observe(this._typeObserver)
@@ -379,6 +397,7 @@ export class CodemirrorBinding {
     this.type = null
     this.cm = null
     this.cmDoc = null
+    super.destroy()
   }
 }
 
