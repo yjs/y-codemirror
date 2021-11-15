@@ -86,9 +86,9 @@ const typeObserver = (binding, event) => {
 const targetObserver = (binding, changes) => {
   binding._mux(() => {
     binding.doc.transact(() => {
-      const hasPaste = binding.yUndoManager && changes.some(change => change.origin === 'paste');
+      const hasPaste = binding.yUndoManager && changes.some(change => change.origin === 'paste')
       if (hasPaste) {
-        binding.yUndoManager.stopCapturing();
+        binding.yUndoManager.stopCapturing()
       }
 
       if (changes.length > 1) {
@@ -110,7 +110,7 @@ const targetObserver = (binding, changes) => {
       }
 
       if (hasPaste) {
-        binding.yUndoManager.stopCapturing();
+        binding.yUndoManager.stopCapturing()
       }
     }, binding)
   })
