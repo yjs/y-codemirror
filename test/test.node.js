@@ -1,10 +1,9 @@
 // @ts-nocheck
 
-const fs = require('fs')
-const path = require('path')
-const jsdom = require('jsdom')
+import fs from 'fs'
+import jsdom from 'jsdom'
 
-const documentContent = fs.readFileSync(path.join(__dirname, '../test.html'))
+const documentContent = fs.readFileSync('test.html')
 const { window } = new jsdom.JSDOM(documentContent)
 
 global.window = window
@@ -34,4 +33,6 @@ document.createRange = () => ({
   }
 })
 
-require('../dist/test.cjs')
+import('./index.js').then(() => {
+  console.log('')
+})

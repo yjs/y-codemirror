@@ -1,6 +1,7 @@
 {
   "name": "y-codemirror",
   "version": "3.0.0",
+  "type": "module",
   "description": "CodeMirror binding for Yjs",
   "main": "./dist/y-codemirror.cjs",
   "types": "./dist/src/y-codemirror.d.ts",
@@ -25,8 +26,8 @@
     "clean": "rm -rf dist",
     "dist": "npm run clean && rollup -c && tsc",
     "watch": "rollup -wc",
-    "test": "npm run dist && node test/test.node.cjs",
-    "test-extensive": "npm run dist && node test/test.node.cjs --production --repetition-time 10000",
+    "test": "npm run dist && node test/test.node.js",
+    "test-extensive": "npm run dist && node test/test.node.js --production --repetition-time 10000",
     "lint": "standard && tsc",
     "preversion": "npm run lint && npm run test-extensive && npm run dist",
     "debug": "concurrently 'http-server -o test.html' 'npm run watch'",
@@ -46,7 +47,7 @@
   },
   "homepage": "https://github.com/yjs/y-codemirror#readme",
   "peerDependencies": {
-    "yjs": "^13.0.0",
+    "yjs": "^13.5.17",
     "codemirror": "^5.52.2"
   },
   "dependencies": {
@@ -64,6 +65,6 @@
     "standard": "^14.3.4",
     "typescript": "^3.9.10",
     "y-webrtc": "^10.2.0",
-    "yjs": "^13.5.17"
+    "yjs": "^13.5.18"
   }
 }
