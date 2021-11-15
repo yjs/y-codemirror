@@ -86,6 +86,11 @@ const typeObserver = (binding, event) => {
 const targetObserver = (binding, changes) => {
   binding._mux(() => {
     binding.doc.transact(() => {
+      const hasPaste = binding.yUndoManager && changes.some(change => change.origin === 'paste');
+      if (hasPaste) {
+        binding.yUndoManager.stopCapturing();
+      }
+
       if (changes.length > 1) {
         // If there are several consecutive changes, we can't reliably compute the positions anymore. See y-codemirror#11
         // Instead, we will compute the diff and apply the changes
@@ -102,6 +107,10 @@ const targetObserver = (binding, changes) => {
         if (change.text.length > 0) {
           binding.type.insert(start, change.text.join('\n'))
         }
+      }
+
+      if (hasPaste) {
+        binding.yUndoManager.stopCapturing();
       }
     }, binding)
   })
