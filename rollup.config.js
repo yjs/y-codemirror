@@ -1,5 +1,6 @@
 import nodeResolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
+import cssbundle from 'rollup-plugin-css-bundle';
 
 const debugResolve = {
   resolveId (importee) {
@@ -32,6 +33,7 @@ export default [{
   },
   plugins: [
     debugResolve,
+    cssbundle(),
     nodeResolve({
       mainFields: ['module', 'browser', 'main']
     }),

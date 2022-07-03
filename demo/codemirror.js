@@ -1,10 +1,11 @@
 /* eslint-env browser */
 
 import * as Y from 'yjs'
-import { CodemirrorBinding } from 'y-codemirror'
+import { CodemirrorBinding } from '../src/y-codemirror'
 import { WebrtcProvider } from 'y-webrtc'
 import CodeMirror from 'codemirror'
 import 'codemirror/mode/javascript/javascript.js'
+import 'codemirror/lib/codemirror.css';
 
 window.addEventListener('load', () => {
   const ydoc = new Y.Doc()
