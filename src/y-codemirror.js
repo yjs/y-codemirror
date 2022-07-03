@@ -13,6 +13,20 @@ import CodeMirror from 'codemirror'
 
 export const cmOrigin = 'y-codemirror'
 
+const updateCursors = (y, cm, cursors, awareness) => {
+  cursors.forEach((cursor, clientId) => {
+    if (clientId !== y.clientID) {
+      const prevHeadpos = cursor.headpos;
+      const nextHeadpos = cm.posFromIndex(Y.createAbsolutePositionFromRelativePosition(JSON.parse(cursor.awCursor.head), y).index);
+      if (!func.equalityFlat(prevHeadpos, nextHeadpos)) {
+        const cursorCoords = cm.cursorCoords(nextHeadpos, "local");
+        cursors.set(clientId, { ...cursor, headpos: nextHeadpos })
+        setCaretPosition(cursor.caret, cursorCoords, cm);
+      }
+    }
+  })
+}
+
 /**
  * @param {CodemirrorBinding} binding
  * @param {any} event
@@ -63,6 +77,8 @@ const typeObserver = (binding, event) => {
           cmDoc.replaceRange('', start, end, cmOrigin)
         }
       }
+
+      updateCursors(binding.doc, binding.cm, binding._cursors);
     }
     // if possible, bundle the changes using cm.operation
     if (cm) {
@@ -114,24 +130,55 @@ const targetObserver = (binding, changes) => {
       }
     }, binding)
   })
+
+  updateCursors(binding.doc, binding.cm, binding._cursors);
+
   if (binding._pendingCursorEvent) {
     binding._pendingCursorEvent = false
     binding.emit('cursorActivity', [binding])
   }
 }
 
-const createRemoteCaret = (username, color) => {
+const createRemoteCaret = (username, color, cursorCoords) => {
+  const height = cursorCoords.bottom - cursorCoords.top;
+
   const caret = document.createElement('span')
   caret.classList.add('remote-caret')
-  caret.setAttribute('style', `border-color: ${color}`)
+  caret.setAttribute('style', `background-color: ${color}`)
+  caret.style.height = height + "px";
+
   const userDiv = document.createElement('div')
   userDiv.setAttribute('style', `background-color: ${color}`)
   userDiv.insertBefore(document.createTextNode(username), null)
   caret.insertBefore(userDiv, null)
-  setTimeout(() => {
-    caret.classList.add('hide-name')
-  }, 2000)
   return caret
+}
+
+function setCaretPosition(caret, cursorCoords, cm) {
+  if (!caret) return;
+
+  caret.style.left = cursorCoords.left + "px";
+  caret.style.top = cursorCoords.top + "px";
+
+  const distanceFromTop = caret.offsetTop - cm.getScrollInfo().top;
+  const userDiv = caret.firstChild;
+  if (distanceFromTop - userDiv.offsetHeight <= 4) {
+    userDiv.style.top = `${userDiv.offsetHeight - 5}px`;
+  } else {
+    userDiv.style.top = `-${userDiv.offsetHeight}px`;
+  }
+
+  const hideTimer = caret.hideTimer;
+  if (hideTimer) {
+    clearTimeout(hideTimer);
+  } else {
+    caret.classList.remove('hide-name');
+  }
+
+  caret.hideTimer = setTimeout(() => {
+    caret.classList.add('hide-name')
+    caret.hideTimer = null;
+  }, 2000)
 }
 
 const createEmptyLinePlaceholder = (color) => {
@@ -147,19 +194,25 @@ const createEmptyLinePlaceholder = (color) => {
   return placeholder
 }
 
+const removeCaret = (domNode) => {
+  if (domNode && domNode.parentNode) {
+    domNode.parentNode.removeChild(domNode);
+  }
+}
+
 const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
   // redraw caret and selection for clientId
   const aw = awareness.getStates().get(clientId)
   // destroy current text mark
   const m = cursors.get(clientId)
+  let caretEl;
   if (m !== undefined) {
-    if (m.caret) {
-      m.caret.clear()
-    }
+    caretEl = m.caret;
     m.sel.forEach(sel => sel.clear())
     cursors.delete(clientId)
   }
   if (aw === undefined) {
+    removeCaret(caretEl);
     return
   }
   const user = aw.user || {}
@@ -171,6 +224,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
   }
   const cursor = aw.cursor
   if (cursor == null || cursor.anchor == null || cursor.head == null) {
+    removeCaret(caretEl);
     return
   }
   const anchor = Y.createAbsolutePositionFromRelativePosition(JSON.parse(cursor.anchor), y)
@@ -186,7 +240,6 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
       from = anchorpos
       to = headpos
     }
-    const caretEl = createRemoteCaret(user.name, user.color)
     // if position was "relatively" the same, do not show name again and hide instead
     if (m && func.equalityFlat(aw.cursor.anchor, m.awCursor.anchor) && func.equalityFlat(aw.cursor.head, m.awCursor.head)) {
       caretEl.classList.add('hide-name')
@@ -207,8 +260,17 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
       sel.push(cm.markText(from, to, { css: `background-color: ${user.color}70;`, inclusiveRight: false, inclusiveLeft: false }))
     }
     // only render caret if not the complete last line was selected (in this case headpos.ch === 0)
-    const caret = sel.length > 0 && to === headpos && headpos.ch === 0 ? null : cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
-    cursors.set(clientId, { caret, sel, awCursor: cursor })
+    if (sel.length > 0 && to === headpos && headpos.ch === 0 && caretEl) {
+      removeCaret(caretEl);
+    } else {
+      const cursorCoords = cm.cursorCoords(headpos, "local");
+      if (!caretEl) {
+        caretEl = createRemoteCaret(user.name, user.color, cursorCoords);
+        cm.addWidget({line: 0, ch: 0}, caretEl, false)
+      }
+      setCaretPosition(caretEl, cursorCoords, cm);
+    }
+    cursors.set(clientId, { caret: caretEl, sel, awCursor: cursor, headpos })
   }
 }
 
