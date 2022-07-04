@@ -154,6 +154,13 @@ const createRemoteCaret = (username, color, cursorCoords) => {
   return caret
 }
 
+const updateCaret = (caret, username, color) => {
+  const userDiv = caret.firstChild;
+  caret.style.backgroundColor = color;
+  userDiv.style.backgroundColor = color;
+  userDiv.innerText = username;
+}
+
 function setCaretPosition(caret, cursorCoords, cm) {
   if (!caret) return;
 
@@ -171,7 +178,8 @@ function setCaretPosition(caret, cursorCoords, cm) {
   const hideTimer = caret.hideTimer;
   if (hideTimer) {
     clearTimeout(hideTimer);
-  } else {
+  }
+  if (caret.classList.contains('hide-name')) {
     caret.classList.remove('hide-name');
   }
 
@@ -268,6 +276,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
         caretEl = createRemoteCaret(user.name, user.color, cursorCoords);
         cm.addWidget({line: 0, ch: 0}, caretEl, false)
       }
+      updateCaret(caretEl, user.name, user.color);
       setCaretPosition(caretEl, cursorCoords, cm);
     }
     cursors.set(clientId, { caret: caretEl, sel, awCursor: cursor, headpos })
