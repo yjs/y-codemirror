@@ -170,7 +170,7 @@ function setCaretPosition(caret, cursorCoords, cm) {
   const distanceFromTop = caret.offsetTop - cm.getScrollInfo().top;
   const userDiv = caret.firstChild;
   if (distanceFromTop - userDiv.offsetHeight <= 4) {
-    userDiv.style.top = `${userDiv.offsetHeight - 5}px`;
+    userDiv.style.top = `${userDiv.offsetHeight}px`;
   } else {
     userDiv.style.top = `-${userDiv.offsetHeight}px`;
   }
