@@ -75,7 +75,9 @@ const typeObserver = (binding, event) => {
       head = anchor
       anchor = tmp
     }
-    cm.setSelection(cm.posFromIndex(anchor), cm.posFromIndex(head), { scroll: false })
+    cm.setSelection(cm.posFromIndex(anchor), cm.posFromIndex(head), {
+      scroll: false
+    })
   })
 }
 
@@ -86,7 +88,8 @@ const typeObserver = (binding, event) => {
 const targetObserver = (binding, changes) => {
   binding._mux(() => {
     binding.doc.transact(() => {
-      const hasPaste = binding.yUndoManager && changes.some(change => change.origin === 'paste')
+      const hasPaste = binding.yUndoManager &&
+        changes.some((change) => change.origin === 'paste')
       if (hasPaste) {
         binding.yUndoManager.stopCapturing()
       }
@@ -94,13 +97,17 @@ const targetObserver = (binding, changes) => {
       if (changes.length > 1) {
         // If there are several consecutive changes, we can't reliably compute the positions anymore. See y-codemirror#11
         // Instead, we will compute the diff and apply the changes
-        const d = diff.simpleDiffString(binding.type.toString(), binding.cmDoc.getValue())
+        const d = diff.simpleDiffString(
+          binding.type.toString(),
+          binding.cmDoc.getValue()
+        )
         binding.type.delete(d.index, d.remove)
         binding.type.insert(d.index, d.insert)
       } else {
         const change = changes[0]
         const start = binding.cmDoc.indexFromPos(change.from)
-        const delLen = change.removed.map(s => s.length).reduce(math.add) + change.removed.length - 1
+        const delLen = change.removed.map((s) => s.length).reduce(math.add) +
+          change.removed.length - 1
         if (delLen > 0) {
           binding.type.delete(start, delLen)
         }
@@ -141,7 +148,10 @@ const createEmptyLinePlaceholder = (color) => {
   emptyTxt.insertBefore(document.createTextNode(''), null)
   const sel = document.createElement('span')
   sel.setAttribute('class', 'y-line-selection')
-  sel.setAttribute('style', `display: inline-block; position: absolute; left: 4px; right: 4px; top: 0; bottom: 0; background-color: ${color}70`)
+  sel.setAttribute(
+    'style',
+    `display: inline-block; position: absolute; left: 4px; right: 4px; top: 0; bottom: 0; background-color: ${color}70`
+  )
   placeholder.insertBefore(sel, null)
   placeholder.insertBefore(emptyTxt, null)
   return placeholder
@@ -156,7 +166,7 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     if (m.caret) {
       m.caret.clear()
     }
-    m.sel.forEach(sel => sel.clear())
+    m.sel.forEach((sel) => sel.clear())
     cursors.delete(clientId)
   }
   if (aw === undefined) {
@@ -173,9 +183,18 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
   if (cursor == null || cursor.anchor == null || cursor.head == null) {
     return
   }
-  const anchor = Y.createAbsolutePositionFromRelativePosition(JSON.parse(cursor.anchor), y)
-  const head = Y.createAbsolutePositionFromRelativePosition(JSON.parse(cursor.head), y)
-  if (anchor !== null && head !== null && anchor.type === type && head.type === type) {
+  const anchor = Y.createAbsolutePositionFromRelativePosition(
+    JSON.parse(cursor.anchor),
+    y
+  )
+  const head = Y.createAbsolutePositionFromRelativePosition(
+    JSON.parse(cursor.head),
+    y
+  )
+  if (
+    anchor !== null && head !== null && anchor.type === type &&
+    head.type === type
+  ) {
     const headpos = cm.posFromIndex(head.index)
     const anchorpos = cm.posFromIndex(anchor.index)
     let from, to
@@ -188,7 +207,10 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     }
     const caretEl = createRemoteCaret(user.name, user.color)
     // if position was "relatively" the same, do not show name again and hide instead
-    if (m && func.equalityFlat(aw.cursor.anchor, m.awCursor.anchor) && func.equalityFlat(aw.cursor.head, m.awCursor.head)) {
+    if (
+      m && func.equalityFlat(aw.cursor.anchor, m.awCursor.anchor) &&
+      func.equalityFlat(aw.cursor.head, m.awCursor.head)
+    ) {
       caretEl.classList.add('hide-name')
     }
     const sel = []
@@ -196,36 +218,68 @@ const updateRemoteSelection = (y, cm, type, cursors, clientId, awareness) => {
     if (head.index !== anchor.index) {
       if (from.line !== to.line && from.ch !== 0) {
         // start of selection will only be a simple text-selection
-        sel.push(cm.markText(from, new CodeMirror.Pos(from.line + 1, 0), { css: `background-color: ${user.color}70;`, inclusiveRight: false, inclusiveLeft: false }))
+        sel.push(
+          cm.markText(from, new CodeMirror.Pos(from.line + 1, 0), {
+            css: `background-color: ${user.color}70;`,
+            inclusiveRight: false,
+            inclusiveLeft: false
+          })
+        )
         from = new CodeMirror.Pos(from.line + 1, 0)
       }
       while (from.line !== to.line) {
         // middle of selection is always a whole-line selection. We add a widget at the first position which will fill the background.
-        sel.push(cm.setBookmark(new CodeMirror.Pos(from.line, 0), { widget: createEmptyLinePlaceholder(user.color) }))
+        sel.push(
+          cm.setBookmark(new CodeMirror.Pos(from.line, 0), {
+            widget: createEmptyLinePlaceholder(user.color)
+          })
+        )
         from = new CodeMirror.Pos(from.line + 1, 0)
       }
-      sel.push(cm.markText(from, to, { css: `background-color: ${user.color}70;`, inclusiveRight: false, inclusiveLeft: false }))
+      sel.push(
+        cm.markText(from, to, {
+          css: `background-color: ${user.color}70;`,
+          inclusiveRight: false,
+          inclusiveLeft: false
+        })
+      )
     }
     // only render caret if not the complete last line was selected (in this case headpos.ch === 0)
-    const caret = sel.length > 0 && to === headpos && headpos.ch === 0 ? null : cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
+    const caret = sel.length > 0 && to === headpos && headpos.ch === 0
+      ? null
+      : cm.setBookmark(headpos, { widget: caretEl, insertLeft: true })
     cursors.set(clientId, { caret, sel, awCursor: cursor })
   }
 }
 
 const codemirrorCursorActivity = (y, cm, type, awareness) => {
   const aw = awareness.getLocalState()
-  if (!cm.hasFocus() || aw == null || !cm.display.wrapper.ownerDocument.hasFocus()) {
+  if (
+    !cm.hasFocus() || aw == null || !cm.display.wrapper.ownerDocument.hasFocus()
+  ) {
     return
   }
-  const newAnchor = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('anchor')))
-  const newHead = Y.createRelativePositionFromTypeIndex(type, cm.indexFromPos(cm.getCursor('head')))
+  const newAnchor = Y.createRelativePositionFromTypeIndex(
+    type,
+    cm.indexFromPos(cm.getCursor('anchor'))
+  )
+  const newHead = Y.createRelativePositionFromTypeIndex(
+    type,
+    cm.indexFromPos(cm.getCursor('head'))
+  )
   let currentAnchor = null
   let currentHead = null
   if (aw.cursor != null) {
-    currentAnchor = Y.createRelativePositionFromJSON(JSON.parse(aw.cursor.anchor))
+    currentAnchor = Y.createRelativePositionFromJSON(
+      JSON.parse(aw.cursor.anchor)
+    )
     currentHead = Y.createRelativePositionFromJSON(JSON.parse(aw.cursor.head))
   }
-  if (aw.cursor == null || !Y.compareRelativePositions(currentAnchor, newAnchor) || !Y.compareRelativePositions(currentHead, newHead)) {
+  if (
+    aw.cursor == null ||
+    !Y.compareRelativePositions(currentAnchor, newAnchor) ||
+    !Y.compareRelativePositions(currentHead, newHead)
+  ) {
     awareness.setLocalStateField('cursor', {
       anchor: JSON.stringify(newAnchor),
       head: JSON.stringify(newHead)
@@ -243,7 +297,6 @@ const codemirrorCursorActivity = (y, cm, type, awareness) => {
  *     lineNumbers: true
  *   })
  *   const binding = new CodemirrorBinding(ytext, editor)
- *
  */
 export class CodemirrorBinding extends Observable {
   /**
@@ -252,7 +305,12 @@ export class CodemirrorBinding extends Observable {
    * @param {any | null} [awareness]
    * @param {{ yUndoManager?: Y.UndoManager }} [options]
    */
-  constructor (textType, codeMirror, awareness = null, { yUndoManager = null } = {}) {
+  constructor (
+    textType,
+    codeMirror,
+    awareness = null,
+    { yUndoManager = null } = {}
+  ) {
     super()
     const doc = textType.doc
     const cmDoc = codeMirror.getDoc()
@@ -271,15 +329,20 @@ export class CodemirrorBinding extends Observable {
     this._onStackItemPopped = ({ stackItem }) => {
       const sel = stackItem.meta.get(this)
       if (sel) {
-        const anchor = Y.createAbsolutePositionFromRelativePosition(sel.anchor, doc).index
-        const head = Y.createAbsolutePositionFromRelativePosition(sel.head, doc).index
-        codeMirror.setSelection(codeMirror.posFromIndex(anchor), codeMirror.posFromIndex(head))
+        const anchor =
+          Y.createAbsolutePositionFromRelativePosition(sel.anchor, doc).index
+        const head =
+          Y.createAbsolutePositionFromRelativePosition(sel.head, doc).index
+        codeMirror.setSelection(
+          codeMirror.posFromIndex(anchor),
+          codeMirror.posFromIndex(head)
+        )
         this._beforeChange()
       }
     }
     if (yUndoManager) {
       yUndoManager.trackedOrigins.add(this) // track changes performed by this editor binding
-      const editorUndo = cm => {
+      const editorUndo = (cm) => {
         // Keymaps always start with an active operation.
         // End the current operation so that the event is fired at the correct moment.
         // @todo check cm.curOp in typeListener and endOperation always.
@@ -287,7 +350,7 @@ export class CodemirrorBinding extends Observable {
         yUndoManager.undo()
         cm.startOperation()
       }
-      const editorRedo = cm => {
+      const editorRedo = (cm) => {
         cm.endOperation()
         yUndoManager.redo()
         cm.startOperation()
@@ -311,7 +374,7 @@ export class CodemirrorBinding extends Observable {
     // set initial value
     cmDoc.setValue(textType.toString())
     // observe type and target
-    this._typeObserver = event => typeObserver(this, event)
+    this._typeObserver = (event) => typeObserver(this, event)
     this._targetObserver = (instance, changes) => {
       if (instance.getDoc() === cmDoc) {
         targetObserver(this, changes)
@@ -320,11 +383,11 @@ export class CodemirrorBinding extends Observable {
     this._cursors = new Map()
     this._changedCursors = new Set()
     this._debounceCursorEvent = eventloop.createDebouncer(10)
-    this._awarenessListener = event => {
+    this._awarenessListener = (event) => {
       if (codeMirror.getDoc() !== cmDoc) {
         return
       }
-      const f = clientId => {
+      const f = (clientId) => {
         if (clientId !== doc.clientID) {
           this._changedCursors.add(clientId)
         }
@@ -334,8 +397,15 @@ export class CodemirrorBinding extends Observable {
       event.updated.forEach(f)
       if (this._changedCursors.size > 0) {
         this._debounceCursorEvent(() => {
-          this._changedCursors.forEach(clientId => {
-            updateRemoteSelection(doc, codeMirror, textType, this._cursors, clientId, awareness)
+          this._changedCursors.forEach((clientId) => {
+            updateRemoteSelection(
+              doc,
+              codeMirror,
+              textType,
+              this._cursors,
+              clientId,
+              awareness
+            )
           })
           this._changedCursors.clear()
         })
@@ -369,8 +439,14 @@ export class CodemirrorBinding extends Observable {
       // update the the beforeChangeSelection that is stored befor each change to the editor (except when applying remote changes)
       this._mux(() => {
         // store the selection before the change is applied so we can restore it with the undo manager.
-        const anchor = Y.createRelativePositionFromTypeIndex(textType, codeMirror.indexFromPos(codeMirror.getCursor('anchor')))
-        const head = Y.createRelativePositionFromTypeIndex(textType, codeMirror.indexFromPos(codeMirror.getCursor('head')))
+        const anchor = Y.createRelativePositionFromTypeIndex(
+          textType,
+          codeMirror.indexFromPos(codeMirror.getCursor('anchor'))
+        )
+        const head = Y.createRelativePositionFromTypeIndex(
+          textType,
+          codeMirror.indexFromPos(codeMirror.getCursor('head'))
+        )
         this._beforeChangeSelection = { anchor, head }
       })
     }
