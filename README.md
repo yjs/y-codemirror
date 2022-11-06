@@ -1,8 +1,10 @@
 # y-codemirror
 
-> [CodeMirror](https://codemirror.net/) Binding for [Yjs](https://github.com/yjs/yjs) - [Demo](https://demos.yjs.dev/codemirror/codemirror.html)
+> [CodeMirror](https://codemirror.net/5/) Binding for [Yjs](https://github.com/yjs/yjs) - [Demo](https://demos.yjs.dev/codemirror/codemirror.html)
 
 This binding binds a [Y.Text](https://github.com/yjs/yjs#Shared-Types) to a CodeMirror editor.
+
+> For [CodeMirror 6](https://codemirror.net)+, go to [yjs/y-codemirror.next](https://github.com/yjs/y-codemirror.next)
 
 ## Features
 
