@@ -145,7 +145,7 @@ const createEmptyLinePlaceholder = (color) => {
   const placeholder = document.createElement('span')
   placeholder.setAttribute('style', 'user-select: none;')
   const emptyTxt = document.createElement('span')
-  emptyTxt.insertBefore(document.createTextNode(''), null)
+  emptyTxt.insertBefore(document.createTextNode('\u200B'), null)
   const sel = document.createElement('span')
   sel.setAttribute('class', 'y-line-selection')
   sel.setAttribute(
